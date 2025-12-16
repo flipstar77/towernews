@@ -1,0 +1,98 @@
+# CHANNEL CONFIG - Leicht austauschbar für andere Themen
+channel:
+  name: "Tower News"
+  language: "en"
+
+# NEWS SOURCES - Erweiterbar
+sources:
+  reddit:
+    enabled: true
+    subreddits:
+      - TheTowerGame
+    min_upvotes: 10
+    min_comments: 5
+    max_posts: 5
+    timeframe: "day"
+
+# LLM CONFIG
+llm:
+  provider: "openai"
+  model: "gpt-4o-mini"
+
+# TTS CONFIG
+elevenlabs:
+  voice_id: "1SM7GgM6IMuvQlz2BwM3"
+  model: "eleven_monolingual_v1"
+
+# AUDIO CONFIG
+audio:
+  intro_music: "assets/music/action power (power, power) Tower news.mp3"
+  background_music: "assets/music/background_music.mp3"  # Background music during stories (-15dB normalized)
+  background_volume: -20  # dB level for background music (negative = quieter)
+  intro_videos:  # Multiple intro videos (randomly selected for variety)
+    - "assets/intro/intro_video.mp4"
+    - "assets/intro/zoom_intro.mp4"
+  outro_videos:  # Multiple outro videos (randomly selected for variety)
+    - "assets/outro/ending.mp4"
+  greeting_videos:  # Short videos (~5s) for intro greeting after jingle
+    - "assets/story/kling_story.mp4"
+    - "assets/story/kling_presenter_1.mp4"
+    - "assets/story/kling_presenter_2.mp4"
+    - "assets/presenter/greetings.mp4"
+    - "assets/presenter/happy.mp4"
+  story_videos:  # Longer videos (~10s) for stories without B-roll (concatenated)
+    - "assets/story/excited.mp4"
+    - "assets/story/talking.mp4"
+    - "assets/presenter/wow.mp4"
+    - "assets/presenter/hands.mp4"
+    - "assets/presenter/fast hands.mp4"
+    - "assets/presenter/happy.mp4"
+    - "assets/presenter/superangry.mp4"
+    - "assets/presenter/dramatic angry.mp4"
+    - "assets/presenter/lyingpeople.mp4"
+    - "assets/presenter/intro2.mp4"
+    - "assets/presenter/zoom in tower.mp4"
+    - "assets/presenter/user-rfCissVvN430eZ4kDAfYjHJz_gen_01kcjvvkf2ey0rd1z4gzb01ftr_watermarked_md (1).mp4"
+    - "assets/presenter/user-rfCissVvN430eZ4kDAfYjHJz_gen_01kcjyjbyge8m8f7gjr03mjzp9_watermarked_md.mp4"
+    - "assets/presenter/user-rfCissVvN430eZ4kDAfYjHJz_gen_01kckcb7kafx19hg5bsgqparpv_watermarked_md.mp4"
+    - "assets/presenter/user-rfCissVvN430eZ4kDAfYjHJz_gen_01kckbyr6we128fg6qdk2f3ew6_watermarked_md.mp4"
+    - "assets/presenter/kling_20251216_Image_to_Video_the_man_is_4816_0.mp4"
+
+# BRANDING
+branding:
+  icon: "assets/branding/tower_icon.jpeg"  # Tower icon for header
+
+# VIDEO CONFIG
+video:
+  width: 1080
+  height: 1920
+  fps: 30
+  ken_burns_zoom: 1.1
+  ticker_speed: 50
+  # Presenter with greenscreen (for stories WITH B-roll - greenscreen gets keyed)
+  presenter_image: "assets/presenter/presenter.png"
+  # Fullscreen presenter (for stories WITHOUT B-roll - already has studio background)
+  presenter_fullscreen: "assets/presenter/Generated Image December 16, 2025 - 12_34AM.png"
+  # Fallback background images (used when no Reddit image available)
+  fallback_backgrounds:
+    - "assets/backgrounds"  # Folder with fallback images (randomly selected)
+  # Greenscreen/Chroma-key settings
+  chroma_key_color: "0x00ff00"  # Green color to remove
+  chroma_similarity: 0.3        # How similar colors must be (0-1)
+  chroma_blend: 0.1             # Edge blending amount
+
+# SCHEDULE
+schedule:
+  run_time: "12:00"
+  timezone: "Europe/Berlin"
+
+# YOUTUBE UPLOAD (optional)
+youtube:
+  auto_upload: false  # Set to true to enable automatic upload
+  privacy_status: "private"  # "private", "unlisted", or "public"
+  # Credentials: Download from Google Cloud Console and save as:
+  # config/youtube_credentials.json
+
+# HISTORY TRACKING (prevent duplicate stories)
+history:
+  retention_days: 30  # How many days to remember reported posts
