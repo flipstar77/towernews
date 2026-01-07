@@ -1,11 +1,25 @@
+# Web Server
+flask>=3.0.0
+flask-cors>=4.0.0
+gunicorn>=21.0.0
+
+# AI/ML
 openai>=1.0.0
+sentence-transformers>=2.2.0
+
+# Database
+supabase>=2.0.0
+
+# Utils
 requests>=2.31.0
-playwright>=1.40.0
 pyyaml>=6.0
-schedule>=1.2.0
 python-dotenv>=1.0.0
-Pillow>=10.0.0
 aiohttp>=3.9.0
-google-api-python-client>=2.0.0
-google-auth-httplib2>=0.1.0
-google-auth-oauthlib>=1.0.0
+
+# Pipeline (optional - for video generation)
+# playwright>=1.40.0
+# Pillow>=10.0.0
+# schedule>=1.2.0
+# google-api-python-client>=2.0.0
+# google-auth-httplib2>=0.1.0
+# google-auth-oauthlib>=1.0.0

@@ -9,15 +9,21 @@ sources:
     enabled: true
     subreddits:
       - TheTowerGame
-    min_upvotes: 10
-    min_comments: 5
-    max_posts: 5
-    timeframe: "day"
+    min_upvotes: 5
+    min_comments: 2
+    fetch_limit: 100  # Fetch this many posts from Reddit
+    max_posts: 5      # Select this many for the video after filtering
+    timeframe: "week"
 
 # LLM CONFIG
 llm:
   provider: "openai"
   model: "gpt-4o-mini"
+
+# RAG CONFIG - Knowledge Base for better article context
+rag:
+  enabled: true  # Set to true after running setup_rag.py
+  context_limit: 3  # Number of relevant documents to retrieve
 
 # TTS CONFIG
 elevenlabs:
@@ -88,8 +94,8 @@ schedule:
 
 # YOUTUBE UPLOAD (optional)
 youtube:
-  auto_upload: false  # Set to true to enable automatic upload
-  privacy_status: "private"  # "private", "unlisted", or "public"
+  auto_upload: true  # Set to true to enable automatic upload
+  privacy_status: "public"  # "private", "unlisted", or "public"
   # Credentials: Download from Google Cloud Console and save as:
   # config/youtube_credentials.json
 

@@ -20,12 +20,14 @@ output/
 # Credentials (sensitive - never commit!)
 config/youtube_credentials.json
 config/youtube_token.pickle
+assets/presenter/client_secret*.json
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+.claude/
 
 # OS
 .DS_Store
@@ -38,3 +40,24 @@ Thumbs.db
 *.tmp
 *.temp
 nul
+
+# Large binary files - not needed for Railway deployment
+assets/
+data/
+*.mp4
+*.mp3
+*.wav
+*.png
+*.jpeg
+*.jpg
+*.npy
+
+# Local development files
+Neon Daydream.mp3
+ingest_*.py
+setup_rag.py
+ARCHITECTURE.md
+RAG_IMPROVEMENT_PLAN.md
+
+# Web UI build (will be built on Railway or served separately)
+web-ui/node_modules/

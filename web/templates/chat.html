@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Knowledge Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .chat-container {
+            height: calc(100vh - 200px);
+        }
+        .message-content p { margin-bottom: 0.5rem; }
+        .message-content ul, .message-content ol { margin-left: 1.5rem; margin-bottom: 0.5rem; }
+        .message-content code { background: #1e293b; padding: 0.125rem 0.25rem; border-radius: 0.25rem; }
+        .message-content pre { background: #1e293b; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-4xl">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-blue-400">Tower Knowledge Chat</h1>
+                <p class="text-gray-400 mt-1">Ask anything about The Tower game</p>
+                <div class="text-sm text-gray-500">
+                    Knowledge base: <span id="doc-count">{{ stats.total_documents }}</span> documents
+                </div>
+            </div>
+            <a href="/dashboard" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
+                Dashboard →
+            </a>
+        </div>
+
+        <!-- Chat Container -->
+        <div class="chat-container overflow-y-auto bg-gray-800 rounded-lg p-4 mb-4" id="chat-container">
+            <div id="messages" class="space-y-4">
+                <!-- Welcome message -->
+                <div class="flex justify-start">
+                    <div class="bg-gray-700 rounded-lg px-4 py-3 max-w-[80%]">
+                        <div class="text-sm text-blue-400 mb-1">Assistant</div>
+                        <div class="message-content">
+                            Welcome! I can help you with strategies, builds, and tips for The Tower game.
+                            Ask me anything about Death Wave builds, Lab upgrades, modules, or game mechanics!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="flex gap-2">
+            <input type="text" id="user-input"
+                   class="flex-1 bg-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="Ask about The Tower game..."
+                   onkeypress="if(event.key === 'Enter') sendMessage()">
+            <button onclick="sendMessage()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition">
+                Send
+            </button>
+            <button onclick="clearChat()"
+                    class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg transition"
+                    title="Clear chat">
+                Clear
+            </button>
+        </div>
+
+        <!-- Example Questions -->
+        <div class="mt-4 text-sm text-gray-400">
+            <span class="mr-2">Try:</span>
+            <button onclick="askQuestion('What is the best Death Wave build?')" class="text-blue-400 hover:underline mr-3">Death Wave build</button>
+            <button onclick="askQuestion('How do Labs work?')" class="text-blue-400 hover:underline mr-3">Labs guide</button>
+            <button onclick="askQuestion('Best modules for damage?')" class="text-blue-400 hover:underline mr-3">Best modules</button>
+            <button onclick="askQuestion('How to farm coins efficiently?')" class="text-blue-400 hover:underline">Coin farming</button>
+        </div>
+    </div>
+
+    <script>
+        let conversationHistory = [];
+        const messagesContainer = document.getElementById('messages');
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addMessage(role, content, sources = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+
+            const bgColor = role === 'user' ? 'bg-blue-600' : 'bg-gray-700';
+            const label = role === 'user' ? 'You' : 'Assistant';
+
+            let sourcesHtml = '';
+            if (sources && sources.length > 0) {
+                const getTypeColor = (type) => {
+                    switch(type) {
+                        case 'wiki': return 'bg-purple-600';
+                        case 'post': return 'bg-blue-600';
+                        case 'comment': return 'bg-green-600';
+                        default: return 'bg-gray-600';
+                    }
+                };
+
+                const getFlairColor = (flair) => {
+                    const f = (flair || '').toLowerCase();
+                    if (f.includes('discussion')) return 'bg-blue-500';
+                    if (f.includes('question') || f.includes('help')) return 'bg-green-500';
+                    if (f.includes('guide') || f.includes('tip')) return 'bg-purple-500';
+                    if (f.includes('meme') || f.includes('humor')) return 'bg-yellow-500';
+                    if (f.includes('achievement') || f.includes('flex')) return 'bg-pink-500';
+                    if (f.includes('info') || f.includes('news')) return 'bg-cyan-500';
+                    return 'bg-gray-500';
+                };
+
+                sourcesHtml = `
+                    <div class="mt-3 pt-3 border-t border-gray-600">
+                        <div class="text-xs text-gray-400 mb-2 font-semibold">📚 Sources (${sources.length}):</div>
+                        <div class="space-y-2">
+                            ${sources.map(s => {
+                                const typeColor = getTypeColor(s.type);
+                                const flairColor = getFlairColor(s.flair);
+                                const scoreDisplay = s.score > 0 ? `<span class="text-yellow-400">↑${s.score}</span>` : '';
+
+                                return `
+                                    <div class="bg-gray-800 rounded-lg p-2 text-sm">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="${typeColor} text-white text-xs px-2 py-0.5 rounded">${s.type}</span>
+                                            ${s.flair ? `<span class="${flairColor} text-white text-xs px-2 py-0.5 rounded">${s.flair}</span>` : ''}
+                                            ${scoreDisplay}
+                                        </div>
+                                        <div class="mt-1">
+                                            ${s.url
+                                                ? `<a href="${s.url}" target="_blank" class="text-blue-400 hover:text-blue-300 hover:underline">${s.title}</a>`
+                                                : `<span class="text-gray-300">${s.title}</span>`
+                                            }
+                                        </div>
+                                        ${s.url ? `<div class="text-xs text-gray-500 mt-1 truncate">${s.url}</div>` : ''}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            messageDiv.innerHTML = `
+                <div class="${bgColor} rounded-lg px-4 py-3 max-w-[80%]">
+                    <div class="text-sm ${role === 'user' ? 'text-blue-200' : 'text-blue-400'} mb-1">${label}</div>
+                    <div class="message-content">${role === 'assistant' ? marked.parse(content) : content}</div>
+                    ${sourcesHtml}
+                </div>
+            `;
+
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function addLoadingMessage() {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex justify-start';
+            messageDiv.id = 'loading-message';
+            messageDiv.innerHTML = `
+                <div class="bg-gray-700 rounded-lg px-4 py-3">
+                    <div class="text-sm text-blue-400 mb-1">Assistant</div>
+                    <div class="flex items-center gap-2">
+                        <div class="animate-pulse">Searching knowledge base...</div>
+                    </div>
+                </div>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function removeLoadingMessage() {
+            const loading = document.getElementById('loading-message');
+            if (loading) loading.remove();
+        }
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addMessage('user', message);
+            conversationHistory.push({ role: 'user', content: message });
+            userInput.value = '';
+
+            // Show loading
+            addLoadingMessage();
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        history: conversationHistory
+                    })
+                });
+
+                const data = await response.json();
+                removeLoadingMessage();
+
+                if (data.error) {
+                    addMessage('assistant', `Error: ${data.error}`);
+                } else {
+                    addMessage('assistant', data.response, data.sources);
+                    conversationHistory.push({ role: 'assistant', content: data.response });
+                }
+            } catch (error) {
+                removeLoadingMessage();
+                addMessage('assistant', `Error: ${error.message}`);
+            }
+        }
+
+        function askQuestion(question) {
+            userInput.value = question;
+            sendMessage();
+        }
+
+        function clearChat() {
+            conversationHistory = [];
+            messagesContainer.innerHTML = `
+                <div class="flex justify-start">
+                    <div class="bg-gray-700 rounded-lg px-4 py-3 max-w-[80%]">
+                        <div class="text-sm text-blue-400 mb-1">Assistant</div>
+                        <div class="message-content">
+                            Welcome! I can help you with strategies, builds, and tips for The Tower game.
+                            Ask me anything about Death Wave builds, Lab upgrades, modules, or game mechanics!
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Focus input on load
+        userInput.focus();
+    </script>
+</body>
+</html>

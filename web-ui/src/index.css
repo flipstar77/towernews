@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+/* Custom animations */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes scroll-left {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s infinite;
+}
+
+.animate-scroll-left {
+  animation: scroll-left 30s linear infinite;
+}
+
+.animate-scroll-left:hover {
+  animation-play-state: paused;
+}
+
+/* Flair colors */
+.flair-discussion { background-color: #3b82f6; }
+.flair-question { background-color: #22c55e; }
+.flair-guide { background-color: #a855f7; }
+.flair-meme { background-color: #f59e0b; }
+.flair-achievement { background-color: #ec4899; }
+.flair-suggestion { background-color: #14b8a6; }
+.flair-bug { background-color: #ef4444; }
+.flair-general { background-color: #6b7280; }
+
+/* Message content styling */
+.message-content p { margin-bottom: 0.5rem; }
+.message-content ul, .message-content ol { margin-left: 1.5rem; margin-bottom: 0.5rem; }
+.message-content code { background: #1e293b; padding: 0.125rem 0.25rem; border-radius: 0.25rem; }
+.message-content pre { background: #1e293b; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}

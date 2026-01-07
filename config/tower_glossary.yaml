@@ -1,0 +1,227 @@
+# Tower Game Glossary
+# Used for query expansion and abbreviation handling in RAG search
+
+abbreviations:
+  # Mechanics
+  DW: "Death Wave"
+  BH: "Black Hole"
+  GT: "Golden Tower"
+  UW: "Ultimate Weapon"
+  UWs: "Ultimate Weapons"
+  CD: "Critical Damage"
+  CC: "Critical Chance"
+  AS: "Attack Speed"
+  APS: "Attacks Per Second"
+  DoT: "Damage over Time"
+  AoE: "Area of Effect"
+
+  # Ultimate Weapons
+  ILM: "Inner Land Mines"
+  SW: "Second Wind"
+  CF: "Chrono Field"
+  SL: "Spotlight"
+  PS: "Poison Swamp"
+  OA: "Orbital Augment"
+  DR: "Death Ray"
+  SM: "Smart Missiles"
+  CL: "Chain Lightning"
+  FT: "Flamethrower"
+  PC: "Plasma Cannon"
+  EN: "Energy Net"
+
+  # Economy & Progression
+  CPH: "Coins Per Hour"
+  CPM: "Coins Per Minute"
+  LTC: "Lifetime Coins"
+  eHP: "effective Health Points"
+  HP: "Health Points"
+  DPS: "Damage Per Second"
+
+  # Tiers (common shorthand)
+  T1: "Tier 1"
+  T2: "Tier 2"
+  T3: "Tier 3"
+  T4: "Tier 4"
+  T5: "Tier 5"
+  T6: "Tier 6"
+  T7: "Tier 7"
+  T8: "Tier 8"
+  T9: "Tier 9"
+  T10: "Tier 10"
+  T11: "Tier 11"
+  T12: "Tier 12"
+  T13: "Tier 13"
+  T14: "Tier 14"
+  T15: "Tier 15"
+  T16: "Tier 16"
+  T17: "Tier 17"
+  T18: "Tier 18"
+  T19: "Tier 19"
+  T20: "Tier 20"
+
+  # Game modes & features
+  LL: "Legends League"
+  WS: "Workshop"
+  GB: "Golden Bot"
+  GBs: "Golden Bots"
+  DF: "Death From Above"
+
+  # Builds
+  GC: "Glass Cannon"
+
+  # Modules
+  MS: "Multishot"
+  BS: "Bounce Shot"
+  FU: "Free Upgrade"
+
+  # Community terms
+  Anc: "Ancient"
+  mods: "modules"
+
+synonyms:
+  damage:
+    - "dmg"
+    - "dps"
+    - "attack power"
+    - "hit"
+
+  farming:
+    - "grinding"
+    - "coin farming"
+    - "afk farming"
+    - "idle"
+
+  build:
+    - "setup"
+    - "loadout"
+    - "configuration"
+    - "comp"
+    - "composition"
+
+  guide:
+    - "tutorial"
+    - "walkthrough"
+    - "how to"
+    - "tips"
+
+  best:
+    - "optimal"
+    - "meta"
+    - "top"
+    - "recommended"
+
+  upgrade:
+    - "level up"
+    - "improve"
+    - "enhance"
+    - "boost"
+
+  enemy:
+    - "mob"
+    - "monster"
+    - "boss"
+    - "wave"
+
+  health:
+    - "hp"
+    - "life"
+    - "hitpoints"
+    - "survivability"
+
+  coins:
+    - "gold"
+    - "money"
+    - "currency"
+    - "cash"
+
+  tournament:
+    - "tourney"
+    - "competition"
+    - "pvp"
+    - "ranked"
+
+  cards:
+    - "card"
+    - "workshop cards"
+
+  laboratory:
+    - "lab"
+    - "research"
+
+  modules:
+    - "mods"
+    - "module"
+
+  perks:
+    - "perk"
+    - "bonuses"
+
+  relics:
+    - "relic"
+    - "artifacts"
+
+# Common typos and corrections
+typos:
+  daeth wave: "death wave"
+  deathwave: "death wave"
+  blakc hole: "black hole"
+  blackhole: "black hole"
+  golde tower: "golden tower"
+  goldentower: "golden tower"
+  attck speed: "attack speed"
+  attackspeed: "attack speed"
+  critcal: "critical"
+  crit dmg: "critical damage"
+  crit chance: "critical chance"
+  tournamnet: "tournament"
+  tournement: "tournament"
+  labratory: "laboratory"
+  laboritory: "laboratory"
+  innner land mines: "inner land mines"
+  smartmissiles: "smart missiles"
+  chainlightning: "chain lightning"
+
+# Game-specific term expansions for better search
+expansions:
+  # When user searches these, also search the expanded terms
+  endgame:
+    - "late game"
+    - "tier 15"
+    - "tier 16"
+    - "tier 17"
+    - "max level"
+
+  early game:
+    - "beginner"
+    - "new player"
+    - "tier 1"
+    - "tier 2"
+    - "tier 3"
+    - "starting"
+
+  mid game:
+    - "tier 8"
+    - "tier 9"
+    - "tier 10"
+    - "tier 11"
+    - "intermediate"
+
+  push:
+    - "pushing"
+    - "wave pushing"
+    - "high wave"
+    - "max wave"
+
+  strategy:
+    - "tactics"
+    - "approach"
+    - "method"
+    - "technique"
+
+# Flair mappings (Reddit post flairs)
+flair_aliases:
+  help: ["question", "newbie", "advice"]
+  guide: ["tutorial", "info", "tips"]
+  discussion: ["talk", "thoughts", "opinion"]
+  achievement: ["progress", "milestone", "flex"]
+  meme: ["humor", "funny", "joke"]

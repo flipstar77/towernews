@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower News - Pipeline Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+        }
+        .segment-card {
+            transition: all 0.3s ease;
+        }
+        .segment-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .type-music { border-left: 4px solid #ec4899; }
+        .type-intro { border-left: 4px solid #8b5cf6; }
+        .type-story { border-left: 4px solid #3b82f6; }
+        .type-outro { border-left: 4px solid #10b981; }
+        .type-concat { border-left: 4px solid #f59e0b; }
+        .type-combined { border-left: 4px solid #6366f1; }
+        .type-unknown { border-left: 4px solid #6b7280; }
+
+        video {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+        audio {
+            width: 100%;
+        }
+        .pipeline-flow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .pipeline-arrow {
+            color: #6b7280;
+            font-size: 1.5rem;
+        }
+        .pipeline-step {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        /* Builder styles */
+        .builder-segment {
+            cursor: grab;
+            user-select: none;
+        }
+        .builder-segment:active {
+            cursor: grabbing;
+        }
+        .builder-segment.selected {
+            ring: 2px;
+            ring-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+        .sortable-ghost {
+            opacity: 0.4;
+        }
+        .sortable-chosen {
+            background: rgba(59, 130, 246, 0.2) !important;
+        }
+        .builder-dropzone {
+            min-height: 100px;
+            border: 2px dashed #4b5563;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .builder-dropzone.drag-over {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        .tab-active {
+            background: #3b82f6;
+            color: white;
+        }
+    </style>
+</head>
+<body class="text-white">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-bold mb-2">Pipeline Builder</h1>
+                <p class="text-gray-400">Video segments and build artifacts</p>
+            </div>
+            <div class="flex gap-4">
+                <a href="/" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg">Chat</a>
+                <a href="/dashboard" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg">Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-2 mb-6">
+            <button onclick="switchTab('view')" id="tab-view" class="px-6 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 tab-active">
+                View Segments
+            </button>
+            <button onclick="switchTab('build')" id="tab-build" class="px-6 py-2 rounded-lg bg-gray-700 hover:bg-gray-600">
+                Build New Video
+            </button>
+        </div>
+
+        <!-- Date Selector -->
+        <div class="bg-gray-800/50 rounded-xl p-4 mb-6">
+            <label class="block text-sm font-medium mb-2">Select Date:</label>
+            <select id="dateSelect" class="w-full md:w-64 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white">
+                <option value="">Loading...</option>
+            </select>
+        </div>
+
+        <!-- VIEW TAB -->
+        <div id="viewTab">
+            <!-- Pipeline Flow Visualization -->
+            <div class="bg-gray-800/50 rounded-xl p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">Pipeline Flow</h2>
+                <div class="pipeline-flow">
+                    <div class="pipeline-step bg-pink-600">Music Intro</div>
+                    <span class="pipeline-arrow">→</span>
+                    <div class="pipeline-step bg-purple-600">Greeting</div>
+                    <span class="pipeline-arrow">→</span>
+                    <div class="pipeline-step bg-blue-600">Story 1</div>
+                    <span class="pipeline-arrow">→</span>
+                    <div class="pipeline-step bg-blue-600">Story 2</div>
+                    <span class="pipeline-arrow">→</span>
+                    <div class="pipeline-step bg-green-600">Outro</div>
+                    <span class="pipeline-arrow">→</span>
+                    <div class="pipeline-step bg-amber-600">Concat</div>
+                    <span class="pipeline-arrow">→</span>
+                    <div class="pipeline-step bg-red-600">Final Video</div>
+                </div>
+            </div>
+
+            <!-- Main Content Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Video Segments -->
+                <div class="bg-gray-800/50 rounded-xl p-6">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <span class="text-2xl">🎬</span> Video Segments
+                    </h2>
+                    <div id="segmentsList" class="space-y-4">
+                        <p class="text-gray-400">Loading...</p>
+                    </div>
+                </div>
+
+                <!-- Audio Files -->
+                <div class="bg-gray-800/50 rounded-xl p-6">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <span class="text-2xl">🔊</span> Audio Files
+                    </h2>
+                    <div id="audioList" class="space-y-4">
+                        <p class="text-gray-400">Loading...</p>
+                    </div>
+                </div>
+
+                <!-- Screenshots -->
+                <div class="bg-gray-800/50 rounded-xl p-6">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <span class="text-2xl">📸</span> Screenshots
+                    </h2>
+                    <div id="screenshotsList" class="grid grid-cols-2 gap-4">
+                        <p class="text-gray-400">Loading...</p>
+                    </div>
+                </div>
+
+                <!-- Final Video -->
+                <div class="bg-gray-800/50 rounded-xl p-6">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <span class="text-2xl">🎥</span> Final Video
+                    </h2>
+                    <div id="finalVideo">
+                        <p class="text-gray-400">Loading...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metadata -->
+            <div class="bg-gray-800/50 rounded-xl p-6 mt-6">
+                <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <span class="text-2xl">📋</span> Metadata
+                </h2>
+                <pre id="metadata" class="bg-gray-900 p-4 rounded-lg text-sm text-gray-300 overflow-x-auto whitespace-pre-wrap">Loading...</pre>
+            </div>
+        </div>
+
+        <!-- BUILD TAB -->
+        <div id="buildTab" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Available Segments -->
+                <div class="bg-gray-800/50 rounded-xl p-6">
+                    <h2 class="text-xl font-semibold mb-4">Available Segments</h2>
+                    <p class="text-sm text-gray-400 mb-4">Drag segments to the timeline</p>
+                    <div id="availableSegments" class="space-y-2">
+                        <p class="text-gray-400">Loading...</p>
+                    </div>
+                </div>
+
+                <!-- Timeline Builder -->
+                <div class="lg:col-span-2 bg-gray-800/50 rounded-xl p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold">Video Timeline</h2>
+                        <div class="flex gap-2">
+                            <button onclick="clearTimeline()" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-sm">
+                                Clear
+                            </button>
+                            <button onclick="buildVideo()" id="buildBtn" class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-semibold">
+                                Build Video
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Timeline Drop Zone -->
+                    <div id="timeline" class="builder-dropzone p-4 space-y-2 min-h-[200px]">
+                        <p class="text-gray-500 text-center py-8" id="timelinePlaceholder">
+                            Drag segments here to build your video
+                        </p>
+                    </div>
+
+                    <!-- Build Status -->
+                    <div id="buildStatus" class="mt-4 hidden">
+                        <div class="bg-gray-700 rounded-lg p-4">
+                            <div class="flex items-center gap-3">
+                                <div class="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                                <span id="buildStatusText">Building video...</span>
+                            </div>
+                            <div class="mt-2 bg-gray-600 rounded-full h-2">
+                                <div id="buildProgress" class="bg-blue-500 h-2 rounded-full transition-all" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview -->
+                    <div id="previewSection" class="mt-6 hidden">
+                        <h3 class="text-lg font-semibold mb-3">Preview</h3>
+                        <video id="previewVideo" controls class="w-full rounded-lg"></video>
+                        <div class="mt-3 flex gap-2">
+                            <a id="downloadLink" href="#" download class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm">
+                                Download Video
+                            </a>
+                            <button onclick="uploadToYouTube()" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-sm">
+                                Upload to YouTube
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Options -->
+            <div class="bg-gray-800/50 rounded-xl p-6 mt-6">
+                <h2 class="text-xl font-semibold mb-4">Build Options</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Add Ticker</label>
+                        <input type="checkbox" id="addTicker" checked class="w-5 h-5 rounded">
+                        <span class="ml-2 text-gray-400">Scrolling news ticker</span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Ticker Text</label>
+                        <input type="text" id="tickerText" placeholder="Custom ticker text..."
+                               class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Output Name</label>
+                        <input type="text" id="outputName" placeholder="custom_video"
+                               class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentData = null;
+        let timelineSortable = null;
+        let availableSortable = null;
+
+        // Tab switching
+        function switchTab(tab) {
+            document.getElementById('viewTab').classList.toggle('hidden', tab !== 'view');
+            document.getElementById('buildTab').classList.toggle('hidden', tab !== 'build');
+            document.getElementById('tab-view').classList.toggle('tab-active', tab === 'view');
+            document.getElementById('tab-build').classList.toggle('tab-active', tab === 'build');
+
+            if (tab === 'build') {
+                renderAvailableSegments();
+                initSortable();
+            }
+        }
+
+        // Load available dates
+        async function loadDates() {
+            try {
+                const response = await fetch('/api/pipeline/dates');
+                const dates = await response.json();
+
+                const select = document.getElementById('dateSelect');
+                select.innerHTML = '';
+
+                dates.forEach((d, i) => {
+                    const option = document.createElement('option');
+                    option.value = d.date;
+                    option.textContent = `${d.date} ${d.has_video ? '✓' : ''} ${d.has_segments ? '(segments)' : ''}`;
+                    if (i === 0) option.selected = true;
+                    select.appendChild(option);
+                });
+
+                // Load first date
+                if (dates.length > 0) {
+                    loadSegments(dates[0].date);
+                }
+            } catch (e) {
+                console.error('Failed to load dates:', e);
+            }
+        }
+
+        // Load segments for a date
+        async function loadSegments(date) {
+            try {
+                const response = await fetch(`/api/pipeline/segments/${date}`);
+                currentData = await response.json();
+
+                renderSegments();
+                renderAudio();
+                renderScreenshots();
+                renderFinalVideo();
+                renderMetadata();
+                renderAvailableSegments();
+            } catch (e) {
+                console.error('Failed to load segments:', e);
+            }
+        }
+
+        function renderSegments() {
+            const container = document.getElementById('segmentsList');
+
+            if (!currentData.segments || currentData.segments.length === 0) {
+                container.innerHTML = '<p class="text-gray-400">No video segments found</p>';
+                return;
+            }
+
+            container.innerHTML = currentData.segments.map(seg => `
+                <div class="segment-card bg-gray-700/50 rounded-lg p-4 type-${seg.type}">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="inline-block px-2 py-1 text-xs rounded bg-gray-600 mb-1">${seg.type.toUpperCase()}</span>
+                            <p class="text-sm text-gray-300">${seg.name}</p>
+                        </div>
+                        <span class="text-xs text-gray-400">${seg.size_kb} KB</span>
+                    </div>
+                    <video controls class="mt-2" preload="metadata">
+                        <source src="/${seg.path}" type="video/mp4">
+                    </video>
+                </div>
+            `).join('');
+        }
+
+        function renderAudio() {
+            const container = document.getElementById('audioList');
+
+            if (!currentData.audio || currentData.audio.length === 0) {
+                container.innerHTML = '<p class="text-gray-400">No audio files found</p>';
+                return;
+            }
+
+            container.innerHTML = currentData.audio.map(audio => `
+                <div class="segment-card bg-gray-700/50 rounded-lg p-4 type-${audio.type}">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <span class="inline-block px-2 py-1 text-xs rounded bg-gray-600 mb-1">${audio.type.toUpperCase()}</span>
+                            <p class="text-sm text-gray-300">${audio.name}</p>
+                        </div>
+                        <span class="text-xs text-gray-400">${audio.size_kb} KB</span>
+                    </div>
+                    <audio controls class="mt-2">
+                        <source src="/${audio.path}" type="audio/mpeg">
+                    </audio>
+                </div>
+            `).join('');
+        }
+
+        function renderScreenshots() {
+            const container = document.getElementById('screenshotsList');
+
+            if (!currentData.screenshots || currentData.screenshots.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 col-span-2">No screenshots found</p>';
+                return;
+            }
+
+            container.innerHTML = currentData.screenshots.map(img => `
+                <div class="bg-gray-700/50 rounded-lg p-2">
+                    <img src="/${img.path}" alt="${img.name}" class="rounded-lg w-full h-auto cursor-pointer hover:opacity-80"
+                         onclick="window.open('/${img.path}', '_blank')">
+                    <p class="text-xs text-gray-400 mt-1 truncate">${img.name}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderFinalVideo() {
+            const container = document.getElementById('finalVideo');
+
+            if (!currentData.final_video) {
+                container.innerHTML = '<p class="text-gray-400">No final video found</p>';
+                return;
+            }
+
+            const video = currentData.final_video;
+            container.innerHTML = `
+                <div class="bg-gray-700/50 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <p class="text-sm text-gray-300">${video.name}</p>
+                        <span class="text-sm text-green-400 font-semibold">${video.size_mb} MB</span>
+                    </div>
+                    <video controls class="w-full" preload="metadata">
+                        <source src="/${video.path}" type="video/mp4">
+                    </video>
+                    <a href="/${video.path}" download class="mt-3 inline-block px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm">
+                        Download Video
+                    </a>
+                </div>
+            `;
+        }
+
+        function renderMetadata() {
+            const container = document.getElementById('metadata');
+
+            if (!currentData.metadata) {
+                container.textContent = 'No metadata found';
+                return;
+            }
+
+            container.textContent = currentData.metadata.content;
+        }
+
+        // ========== BUILD TAB FUNCTIONS ==========
+
+        function getTypeColor(type) {
+            const colors = {
+                'music': 'bg-pink-600',
+                'intro': 'bg-purple-600',
+                'story': 'bg-blue-600',
+                'outro': 'bg-green-600',
+                'concat': 'bg-amber-600'
+            };
+            return colors[type] || 'bg-gray-600';
+        }
+
+        function renderAvailableSegments() {
+            const container = document.getElementById('availableSegments');
+
+            if (!currentData || !currentData.segments) {
+                container.innerHTML = '<p class="text-gray-400">No segments available</p>';
+                return;
+            }
+
+            // Filter out concat (it's the combined result)
+            const segments = currentData.segments.filter(s => s.type !== 'concat');
+
+            container.innerHTML = segments.map((seg, idx) => `
+                <div class="builder-segment bg-gray-700 rounded-lg p-3 flex items-center gap-3 type-${seg.type}"
+                     data-path="${seg.path}" data-type="${seg.type}" data-name="${seg.name}">
+                    <span class="w-6 h-6 flex items-center justify-center ${getTypeColor(seg.type)} rounded text-xs font-bold">
+                        ${idx + 1}
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <span class="text-xs ${getTypeColor(seg.type)} px-2 py-0.5 rounded">${seg.type.toUpperCase()}</span>
+                        <p class="text-xs text-gray-400 truncate mt-1">${seg.name}</p>
+                    </div>
+                    <span class="text-xs text-gray-500">${seg.size_kb}KB</span>
+                </div>
+            `).join('');
+
+            initSortable();
+        }
+
+        function initSortable() {
+            const available = document.getElementById('availableSegments');
+            const timeline = document.getElementById('timeline');
+
+            if (availableSortable) availableSortable.destroy();
+            if (timelineSortable) timelineSortable.destroy();
+
+            availableSortable = new Sortable(available, {
+                group: {
+                    name: 'segments',
+                    pull: 'clone',
+                    put: false
+                },
+                animation: 150,
+                sort: false
+            });
+
+            timelineSortable = new Sortable(timeline, {
+                group: 'segments',
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                onAdd: function(evt) {
+                    // Hide placeholder
+                    const placeholder = document.getElementById('timelinePlaceholder');
+                    if (placeholder) placeholder.style.display = 'none';
+
+                    // Add remove button to the cloned element
+                    const item = evt.item;
+                    if (!item.querySelector('.remove-btn')) {
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'remove-btn ml-2 text-red-400 hover:text-red-300';
+                        removeBtn.innerHTML = '✕';
+                        removeBtn.onclick = () => {
+                            item.remove();
+                            updatePlaceholder();
+                        };
+                        item.appendChild(removeBtn);
+                    }
+                }
+            });
+        }
+
+        function updatePlaceholder() {
+            const timeline = document.getElementById('timeline');
+            const placeholder = document.getElementById('timelinePlaceholder');
+            const items = timeline.querySelectorAll('.builder-segment');
+
+            if (items.length === 0 && placeholder) {
+                placeholder.style.display = 'block';
+            }
+        }
+
+        function clearTimeline() {
+            const timeline = document.getElementById('timeline');
+            const segments = timeline.querySelectorAll('.builder-segment');
+            segments.forEach(s => s.remove());
+
+            const placeholder = document.getElementById('timelinePlaceholder');
+            if (placeholder) placeholder.style.display = 'block';
+
+            document.getElementById('previewSection').classList.add('hidden');
+        }
+
+        async function buildVideo() {
+            const timeline = document.getElementById('timeline');
+            const segments = timeline.querySelectorAll('.builder-segment');
+
+            if (segments.length === 0) {
+                alert('Please add segments to the timeline first!');
+                return;
+            }
+
+            // Collect segment paths in order
+            const segmentPaths = Array.from(segments).map(s => s.dataset.path);
+
+            // Get options
+            const addTicker = document.getElementById('addTicker').checked;
+            const tickerText = document.getElementById('tickerText').value || 'Tower News - Daily Gaming Updates';
+            const outputName = document.getElementById('outputName').value || 'custom_video';
+
+            // Show build status
+            document.getElementById('buildStatus').classList.remove('hidden');
+            document.getElementById('buildBtn').disabled = true;
+
+            try {
+                const response = await fetch('/api/pipeline/build', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        segments: segmentPaths,
+                        add_ticker: addTicker,
+                        ticker_text: tickerText,
+                        output_name: outputName,
+                        date: currentData.date
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('buildStatusText').textContent = 'Build complete!';
+                    document.getElementById('buildProgress').style.width = '100%';
+
+                    // Show preview
+                    document.getElementById('previewSection').classList.remove('hidden');
+                    document.getElementById('previewVideo').src = '/' + result.video_path;
+                    document.getElementById('downloadLink').href = '/' + result.video_path;
+
+                    setTimeout(() => {
+                        document.getElementById('buildStatus').classList.add('hidden');
+                    }, 2000);
+                } else {
+                    alert('Build failed: ' + result.error);
+                    document.getElementById('buildStatus').classList.add('hidden');
+                }
+            } catch (e) {
+                alert('Build error: ' + e.message);
+                document.getElementById('buildStatus').classList.add('hidden');
+            }
+
+            document.getElementById('buildBtn').disabled = false;
+        }
+
+        async function uploadToYouTube() {
+            alert('YouTube upload - use the main pipeline for now, or implement here.');
+        }
+
+        // Event listeners
+        document.getElementById('dateSelect').addEventListener('change', (e) => {
+            if (e.target.value) {
+                loadSegments(e.target.value);
+            }
+        });
+
+        // Initial load
+        loadDates();
+    </script>
+</body>
+</html>

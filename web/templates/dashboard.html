@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower News Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Scrolling banner */
+        .banner-container {
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .banner-content {
+            display: inline-block;
+            animation: scroll-left 30s linear infinite;
+        }
+        .banner-content:hover {
+            animation-play-state: paused;
+        }
+        @keyframes scroll-left {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Flair colors */
+        .flair-discussion { background-color: #3b82f6; }
+        .flair-question { background-color: #22c55e; }
+        .flair-guide { background-color: #a855f7; }
+        .flair-meme { background-color: #f59e0b; }
+        .flair-achievement { background-color: #ec4899; }
+        .flair-suggestion { background-color: #14b8a6; }
+        .flair-bug { background-color: #ef4444; }
+        .flair-general { background-color: #6b7280; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-gray-800 border-b border-gray-700 px-6 py-4">
+        <div class="flex items-center justify-between max-w-7xl mx-auto">
+            <h1 class="text-2xl font-bold text-blue-400">Tower News Dashboard</h1>
+            <div class="flex gap-4">
+                <a href="/" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition">RAG Chat</a>
+                <a href="/dashboard" class="px-4 py-2 bg-blue-600 rounded-lg">Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Scrolling Thread Banner -->
+    <div class="bg-gray-800 border-b border-gray-700">
+        <div class="max-w-7xl mx-auto px-6 py-2">
+            <div class="flex items-center gap-4">
+                <span class="text-gray-400 text-sm font-medium shrink-0">📰 Recent Threads:</span>
+                <div class="banner-container flex-1">
+                    <div id="thread-banner" class="banner-content">
+                        <span class="text-gray-500">Loading threads...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Stats Row -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <!-- Knowledge Base Stats -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h3 class="text-gray-400 text-sm mb-2">Knowledge Base</h3>
+                <p class="text-3xl font-bold text-blue-400" id="kb-total">-</p>
+                <p class="text-gray-500 text-sm mt-1">Documents</p>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h3 class="text-gray-400 text-sm mb-2">Posts</h3>
+                <p class="text-3xl font-bold text-green-400" id="kb-posts">-</p>
+                <p class="text-gray-500 text-sm mt-1">Reddit Posts</p>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h3 class="text-gray-400 text-sm mb-2">Comments</h3>
+                <p class="text-3xl font-bold text-yellow-400" id="kb-comments">-</p>
+                <p class="text-gray-500 text-sm mt-1">Reddit Comments</p>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h3 class="text-gray-400 text-sm mb-2">Wiki</h3>
+                <p class="text-3xl font-bold text-purple-400" id="kb-wiki">-</p>
+                <p class="text-gray-500 text-sm mt-1">Wiki Pages</p>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Pipeline Control -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span>Video Pipeline</span>
+                    <span id="pipeline-indicator" class="w-3 h-3 rounded-full bg-gray-500"></span>
+                </h2>
+
+                <div class="mb-6">
+                    <button id="run-pipeline-btn" onclick="runPipeline()"
+                            class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition">
+                        Generate New Video
+                    </button>
+                </div>
+
+                <div id="pipeline-status" class="bg-gray-700 rounded-lg p-4 mb-4">
+                    <p class="text-gray-400 text-sm">Status</p>
+                    <p id="pipeline-progress" class="text-white">Ready</p>
+                </div>
+
+                <div id="last-video" class="hidden">
+                    <p class="text-gray-400 text-sm mb-2">Last Generated Video</p>
+                    <a id="last-video-link" href="#" target="_blank"
+                       class="text-blue-400 hover:underline"></a>
+                </div>
+            </div>
+
+            <!-- Recent Videos -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4">Recent Videos</h2>
+                <div id="videos-list" class="space-y-3 max-h-96 overflow-y-auto">
+                    <p class="text-gray-500">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Post History -->
+        <div class="mt-8 bg-gray-800 rounded-lg p-6">
+            <h2 class="text-xl font-bold mb-4">Reported Posts History</h2>
+            <div id="history-list" class="space-y-2 max-h-96 overflow-y-auto">
+                <p class="text-gray-500">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load stats on page load
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                document.getElementById('kb-total').textContent = data.total_documents.toLocaleString();
+                document.getElementById('kb-posts').textContent = (data.by_type.post || 0).toLocaleString();
+                document.getElementById('kb-comments').textContent = (data.by_type.comment || 0).toLocaleString();
+                document.getElementById('kb-wiki').textContent = (data.by_type.wiki || 0).toLocaleString();
+            } catch (e) {
+                console.error('Failed to load stats:', e);
+            }
+        }
+
+        // Load videos
+        async function loadVideos() {
+            try {
+                const res = await fetch('/api/videos');
+                const videos = await res.json();
+                const container = document.getElementById('videos-list');
+
+                if (videos.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500">No videos generated yet</p>';
+                    return;
+                }
+
+                container.innerHTML = videos.map(v => `
+                    <div class="bg-gray-700 rounded-lg p-3">
+                        <p class="text-sm text-gray-400">${v.date}</p>
+                        <p class="text-white font-medium truncate">${v.title}</p>
+                        ${v.youtube_url ? `<a href="${v.youtube_url}" target="_blank" class="text-blue-400 text-sm hover:underline">Watch on YouTube</a>` : ''}
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load videos:', e);
+            }
+        }
+
+        // Load history
+        async function loadHistory() {
+            try {
+                const res = await fetch('/api/history');
+                const history = await res.json();
+                const container = document.getElementById('history-list');
+
+                if (history.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500">No posts reported yet</p>';
+                    return;
+                }
+
+                container.innerHTML = history.map(h => `
+                    <div class="flex items-center justify-between bg-gray-700 rounded px-3 py-2">
+                        <span class="text-white truncate flex-1">${h.title}</span>
+                        <span class="text-gray-400 text-sm ml-4">${h.video_date || h.reported_at?.split('T')[0] || ''}</span>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load history:', e);
+            }
+        }
+
+        // Run pipeline
+        async function runPipeline() {
+            const btn = document.getElementById('run-pipeline-btn');
+            btn.disabled = true;
+            btn.textContent = 'Starting...';
+
+            try {
+                await fetch('/api/pipeline/run', { method: 'POST' });
+                pollPipelineStatus();
+            } catch (e) {
+                console.error('Failed to start pipeline:', e);
+                btn.disabled = false;
+                btn.textContent = 'Generate New Video';
+            }
+        }
+
+        // Poll pipeline status
+        async function pollPipelineStatus() {
+            const btn = document.getElementById('run-pipeline-btn');
+            const progress = document.getElementById('pipeline-progress');
+            const indicator = document.getElementById('pipeline-indicator');
+            const lastVideo = document.getElementById('last-video');
+            const lastVideoLink = document.getElementById('last-video-link');
+
+            try {
+                const res = await fetch('/api/pipeline/status');
+                const status = await res.json();
+
+                progress.textContent = status.progress || 'Ready';
+
+                if (status.running) {
+                    indicator.className = 'w-3 h-3 rounded-full bg-yellow-400 pulse-dot';
+                    btn.disabled = true;
+                    btn.textContent = 'Running...';
+                    setTimeout(pollPipelineStatus, 2000);
+                } else {
+                    if (status.error) {
+                        indicator.className = 'w-3 h-3 rounded-full bg-red-500';
+                    } else {
+                        indicator.className = 'w-3 h-3 rounded-full bg-green-500';
+                    }
+                    btn.disabled = false;
+                    btn.textContent = 'Generate New Video';
+
+                    if (status.last_video) {
+                        lastVideo.classList.remove('hidden');
+                        lastVideoLink.href = status.last_video;
+                        lastVideoLink.textContent = status.last_video;
+                    }
+
+                    // Reload videos list
+                    loadVideos();
+                    loadHistory();
+                }
+            } catch (e) {
+                console.error('Failed to get status:', e);
+                btn.disabled = false;
+                btn.textContent = 'Generate New Video';
+            }
+        }
+
+        // Load recent threads for banner
+        async function loadBanner() {
+            try {
+                const res = await fetch('/api/recent-threads');
+                const threads = await res.json();
+                const banner = document.getElementById('thread-banner');
+
+                if (threads.length === 0) {
+                    banner.innerHTML = '<span class="text-gray-500">No threads found</span>';
+                    return;
+                }
+
+                // Map flair to CSS class
+                const getFlairClass = (flair) => {
+                    const f = flair.toLowerCase();
+                    if (f.includes('discussion')) return 'flair-discussion';
+                    if (f.includes('question') || f.includes('help')) return 'flair-question';
+                    if (f.includes('guide') || f.includes('tip')) return 'flair-guide';
+                    if (f.includes('meme') || f.includes('humor')) return 'flair-meme';
+                    if (f.includes('achievement') || f.includes('flex')) return 'flair-achievement';
+                    if (f.includes('suggestion') || f.includes('idea')) return 'flair-suggestion';
+                    if (f.includes('bug') || f.includes('issue')) return 'flair-bug';
+                    return 'flair-general';
+                };
+
+                banner.innerHTML = threads.map(t => `
+                    <a href="${t.url || '#'}" target="_blank"
+                       class="inline-flex items-center gap-2 mx-4 hover:opacity-80 transition">
+                        <span class="${getFlairClass(t.flair)} text-white text-xs px-2 py-0.5 rounded">${t.flair}</span>
+                        <span class="text-gray-300">${t.title}</span>
+                        <span class="text-gray-500 text-sm">(${t.score}↑)</span>
+                    </a>
+                `).join('<span class="text-gray-600 mx-2">•</span>');
+
+            } catch (e) {
+                console.error('Failed to load banner:', e);
+            }
+        }
+
+        // Initial load
+        loadStats();
+        loadVideos();
+        loadHistory();
+        loadBanner();
+        pollPipelineStatus();
+
+        // Refresh stats every 30 seconds, banner every 60 seconds
+        setInterval(loadStats, 30000);
+        setInterval(loadBanner, 60000);
+    </script>
+</body>
+</html>
