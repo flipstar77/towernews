@@ -9,8 +9,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application
 COPY . .
 
-# Railway sets PORT env variable
+# Default port (Railway overrides with PORT env)
 ENV PORT=8080
 
-# Start server - use shell form to expand $PORT
-CMD sh -c "gunicorn web.chat_server:app --bind 0.0.0.0:${PORT}"
+# Start server using shell to expand PORT variable
+ENTRYPOINT ["sh", "-c", "gunicorn web.chat_server:app --bind 0.0.0.0:${PORT:-8080}"]
