@@ -9,8 +9,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application
 COPY . .
 
-# Railway uses PORT env variable
+# Railway sets PORT env variable
 ENV PORT=8080
 
-# Start server with dynamic port
-CMD gunicorn web.chat_server:app --bind 0.0.0.0:$PORT
+# Start server - use shell form to expand $PORT
+CMD sh -c "gunicorn web.chat_server:app --bind 0.0.0.0:${PORT}"
