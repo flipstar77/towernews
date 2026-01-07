@@ -139,6 +139,90 @@ class RedditScraper:
 
         return posts
 
+    def fetch_hot_posts(
+        self,
+        subreddit: str,
+        limit: int = 25
+    ) -> list[RedditPost]:
+        """
+        Fetch hot (trending) posts from a subreddit.
+
+        Args:
+            subreddit: Name of the subreddit (without r/)
+            limit: Maximum number of posts to fetch (max 100)
+
+        Returns:
+            List of RedditPost objects
+        """
+        url = f"{self.BASE_URL}/r/{subreddit}/hot.json"
+        params = {"limit": min(limit, 100)}
+
+        response = self.session.get(url, params=params)
+        response.raise_for_status()
+
+        data = response.json()
+        posts = []
+
+        for child in data.get("data", {}).get("children", []):
+            post_data = child.get("data", {})
+
+            # Skip stickied posts
+            if post_data.get("stickied"):
+                continue
+
+            # Extract image URL from various sources
+            image_url = None
+            preview_url = None
+
+            # Check if URL is a direct image link
+            url = post_data.get("url", "")
+            if any(url.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]):
+                image_url = url
+            elif "i.redd.it" in url or "i.imgur.com" in url:
+                image_url = url
+
+            # Check preview images
+            preview = post_data.get("preview", {})
+            if preview and "images" in preview:
+                images = preview.get("images", [])
+                if images:
+                    source = images[0].get("source", {})
+                    if source.get("url"):
+                        preview_url = source.get("url", "").replace("&amp;", "&")
+                    if not image_url and preview_url:
+                        image_url = preview_url
+
+            # Check for gallery posts
+            if post_data.get("is_gallery"):
+                media_metadata = post_data.get("media_metadata", {})
+                if media_metadata:
+                    for media_id, media_data in media_metadata.items():
+                        if media_data.get("status") == "valid" and media_data.get("m", "").startswith("image"):
+                            if "s" in media_data and "u" in media_data["s"]:
+                                image_url = media_data["s"]["u"].replace("&amp;", "&")
+                                break
+
+            post = RedditPost(
+                id=post_data.get("id", ""),
+                title=post_data.get("title", ""),
+                selftext=post_data.get("selftext", ""),
+                url=post_data.get("url", ""),
+                permalink=post_data.get("permalink", ""),
+                score=post_data.get("score", 0),
+                upvote_ratio=post_data.get("upvote_ratio", 0.0),
+                num_comments=post_data.get("num_comments", 0),
+                created_utc=post_data.get("created_utc", 0),
+                author=post_data.get("author", "[deleted]"),
+                flair=post_data.get("link_flair_text"),
+                is_self=post_data.get("is_self", False),
+                thumbnail=post_data.get("thumbnail") if post_data.get("thumbnail", "").startswith("http") else None,
+                image_url=image_url,
+                preview_url=preview_url
+            )
+            posts.append(post)
+
+        return posts
+
     def fetch_top_comments(self, subreddit: str, post_id: str, limit: int = 5) -> list[dict]:
         """
         Fetch top comments from a post.
@@ -262,6 +346,7 @@ class RedditScraper:
         min_comments: int = 5,
         max_posts: int = 5,
         timeframe: str = "day",
+        fetch_limit: int = 100,
         exclude_flairs: list[str] = None,
         prioritize_flairs: list[str] = None
     ) -> list[RedditPost]:
@@ -274,13 +359,21 @@ class RedditScraper:
             min_comments: Minimum comment threshold
             max_posts: Maximum number of posts to return
             timeframe: Time period for top posts
+            fetch_limit: How many posts to fetch from Reddit before filtering
             exclude_flairs: List of flairs to exclude (default: memes, achievements, help)
             prioritize_flairs: List of flairs to prioritize (default: news, discussion, info)
 
         Returns:
             List of filtered RedditPost objects, sorted by engagement
         """
-        posts = self.fetch_top_posts(subreddit, timeframe, limit=50)
+        posts = self.fetch_top_posts(subreddit, timeframe, limit=fetch_limit)
+
+        # If no top posts found (e.g., early in day), fall back to hot posts
+        if not posts:
+            print(f"[RedditScraper] No top posts for {timeframe}, falling back to hot posts...")
+            posts = self.fetch_hot_posts(subreddit, limit=fetch_limit)
+
+        print(f"[RedditScraper] Fetched {len(posts)} posts from r/{subreddit}")
 
         # Use default exclusions if not specified
         exclude_flairs = exclude_flairs or self.EXCLUDED_FLAIRS
@@ -296,7 +389,9 @@ class RedditScraper:
             # Check if flair should be excluded
             post_flair = (p.flair or "").lower()
             if any(excluded.lower() in post_flair for excluded in exclude_flairs):
-                print(f"[RedditScraper] Excluding post (flair: {p.flair}): {p.title[:50]}...")
+                # Use ascii encoding to avoid emoji issues on Windows console
+                safe_title = p.title[:50].encode('ascii', 'replace').decode('ascii')
+                print(f"[RedditScraper] Excluding post (flair: {p.flair}): {safe_title}...")
                 continue
 
             filtered.append(p)
@@ -311,6 +406,61 @@ class RedditScraper:
         filtered.sort(key=sort_key, reverse=True)
 
         return filtered[:max_posts]
+
+    def _fallback_from_knowledge_base(self, max_posts: int = 5) -> list:
+        """Fallback to Knowledge Base when Reddit API is blocked."""
+        try:
+            import sys
+            from pathlib import Path
+            sys.path.insert(0, str(Path(__file__).parent.parent))
+            from rag import TowerKnowledgeBase
+
+            kb = TowerKnowledgeBase()
+            results = kb.get_top_posts(limit=max_posts * 3)
+
+            posts = []
+            seen_ids = set()
+            for r in results:
+                # Get post_id from metadata
+                raw_post_id = r.metadata.get("post_id", "")
+                post_id = raw_post_id.split("_chunk")[0] if "_chunk" in raw_post_id else raw_post_id
+
+                if not post_id or post_id in seen_ids:
+                    continue
+                seen_ids.add(post_id)
+
+                title = r.metadata.get("title", "")
+                if not title:
+                    continue
+
+                posts.append(RedditPost(
+                    id=post_id,
+                    title=title,
+                    selftext=r.content[:500] if r.content else "",
+                    url=r.metadata.get("reddit_url", f"https://reddit.com/r/TheTowerGame/comments/{post_id}"),
+                    permalink=r.metadata.get("permalink", f"/r/TheTowerGame/comments/{post_id}"),
+                    score=r.metadata.get("score", 0),
+                    upvote_ratio=0.9,
+                    num_comments=0,
+                    created_utc=0,
+                    author=r.metadata.get("author", ""),
+                    flair=r.metadata.get("flair", ""),
+                    is_self=True,
+                    thumbnail=None,
+                    image_url=None,
+                    preview_url=None
+                ))
+
+                if len(posts) >= max_posts:
+                    break
+
+            print(f"[RedditScraper] Using Knowledge Base fallback: {len(posts)} posts")
+            return posts
+        except Exception as e:
+            import traceback
+            print(f"[RedditScraper] Knowledge Base fallback failed: {e}")
+            traceback.print_exc()
+            return []
 
     def run(self, **kwargs) -> dict:
         """
@@ -334,18 +484,25 @@ class RedditScraper:
         min_upvotes = kwargs.get("min_upvotes", reddit_config.get("min_upvotes", 10))
         min_comments = kwargs.get("min_comments", reddit_config.get("min_comments", 5))
         max_posts = kwargs.get("max_posts", reddit_config.get("max_posts", 5))
+        fetch_limit = kwargs.get("fetch_limit", reddit_config.get("fetch_limit", 100))
         timeframe = kwargs.get("timeframe", reddit_config.get("timeframe", "day"))
         download_images = kwargs.get("download_images", True)
         fetch_comments = kwargs.get("fetch_comments", True)
         comments_limit = kwargs.get("comments_limit", 5)
 
-        posts = self.get_filtered_posts(
-            subreddit=subreddit,
-            min_upvotes=min_upvotes,
-            min_comments=min_comments,
-            max_posts=max_posts,
-            timeframe=timeframe
-        )
+        try:
+            posts = self.get_filtered_posts(
+                subreddit=subreddit,
+                min_upvotes=min_upvotes,
+                min_comments=min_comments,
+                max_posts=max_posts,
+                fetch_limit=fetch_limit,
+                timeframe=timeframe
+            )
+        except Exception as e:
+            print(f"[RedditScraper] Reddit API failed: {e}")
+            print(f"[RedditScraper] Falling back to Knowledge Base...")
+            posts = self._fallback_from_knowledge_base(max_posts)
 
         # Download images if requested
         images = {}

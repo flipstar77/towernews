@@ -1,0 +1,53 @@
+# JOURNEY CONFIG - Tower Progress Diary
+
+channel:
+  name: "Tower Journey"
+  language: "en"
+
+# SEGMENTS TO TRACK (start with 3)
+segments:
+  coins:
+    name: "Coins Earned"
+    description: "Total coins earned in runs"
+    unit: ""  # Will auto-detect (K, M, B, T, q)
+
+  labs:
+    name: "Labs Completed"
+    description: "Total labs finished"
+    unit: ""
+
+  highest_wave:
+    name: "Highest Wave"
+    description: "Best wave reached in a run"
+    unit: ""
+
+# LLM CONFIG (for image analysis + script writing)
+llm:
+  provider: "openai"
+  model: "gpt-4o"  # Supports image analysis
+
+# TTS CONFIG (reuse from main config)
+elevenlabs:
+  voice_id: "1SM7GgM6IMuvQlz2BwM3"
+  model: "eleven_monolingual_v1"
+
+# AUDIO CONFIG
+audio:
+  background_music: "assets/music/background_music.mp3"
+  background_volume: -20
+
+# VIDEO CONFIG
+video:
+  width: 1080
+  height: 1920
+  fps: 30
+  segment_duration: 8  # seconds per segment comparison
+
+# YOUTUBE UPLOAD
+youtube:
+  auto_upload: false  # Manual control for journey videos
+  privacy_status: "unlisted"
+
+# BRANDING
+branding:
+  icon: "assets/branding/tower_icon.jpeg"

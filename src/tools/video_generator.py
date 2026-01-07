@@ -8,6 +8,67 @@ from datetime import datetime
 from typing import Optional
 
 
+def validate_image(image_path: str) -> bool:
+    """Validate that an image can be processed by FFmpeg without hanging.
+
+    Some corrupt images (especially PNGs from Reddit) can cause FFmpeg
+    to enter an infinite error loop when used with -loop 1.
+
+    Args:
+        image_path: Path to the image file
+
+    Returns:
+        True if image is valid, False if corrupt or unreadable
+    """
+    if not image_path or not Path(image_path).exists():
+        return False
+
+    try:
+        # Use FFprobe to validate the image (quick check)
+        result = subprocess.run(
+            [
+                "ffprobe", "-v", "error",
+                "-select_streams", "v:0",
+                "-show_entries", "stream=width,height",
+                "-of", "json",
+                image_path
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5  # 5 second timeout
+        )
+
+        if result.returncode != 0:
+            print(f"[VideoGenerator] Invalid image (ffprobe error): {image_path}")
+            return False
+
+        # Also do a quick decode test (single frame)
+        result = subprocess.run(
+            [
+                "ffmpeg", "-v", "error",
+                "-i", image_path,
+                "-frames:v", "1",
+                "-f", "null", "-"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10  # 10 second timeout
+        )
+
+        if result.returncode != 0 or "Invalid" in result.stderr:
+            print(f"[VideoGenerator] Corrupt image (decode error): {image_path}")
+            return False
+
+        return True
+
+    except subprocess.TimeoutExpired:
+        print(f"[VideoGenerator] Image validation timeout: {image_path}")
+        return False
+    except Exception as e:
+        print(f"[VideoGenerator] Image validation error: {image_path} - {e}")
+        return False
+
+
 class VideoGenerator:
     """Generates news videos with Ken Burns effect, news ticker, and greenscreen keying."""
 
@@ -1836,7 +1897,10 @@ class VideoGenerator:
             # Fall through to presenter-based outro if no video available
 
         # Check if we have a real screenshot/B-roll (not fallback)
-        has_real_image = screenshot and Path(screenshot).exists()
+        # Also validate the image to prevent corrupt images from hanging FFmpeg
+        has_real_image = screenshot and Path(screenshot).exists() and validate_image(screenshot)
+        if screenshot and Path(screenshot).exists() and not has_real_image:
+            print(f"[VideoGenerator] Skipping corrupt image, falling back to video: {screenshot}")
 
         # If no real B-roll image for story segments, try story video first
         if not has_real_image and segment_type == "story" and self.story_videos:
