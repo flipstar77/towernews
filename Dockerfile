@@ -9,11 +9,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application
 COPY . .
 
-# Build React UI (if node is available)
-# RUN cd web-ui && npm install && npm run build
+# Railway uses PORT env variable
+ENV PORT=8080
 
-# Expose port
-EXPOSE 8080
-
-# Start server
-CMD ["gunicorn", "web.chat_server:app", "--bind", "0.0.0.0:8080"]
+# Start server with dynamic port
+CMD gunicorn web.chat_server:app --bind 0.0.0.0:$PORT
